@@ -53,16 +53,6 @@ class MpdfAction extends Action {
 			header( "Content-Disposition: attachment; filename=\"$filename.html\"" );
 			print $html;
 		} else {
-			// return pdf file
-			$mode = 'utf-8';
-			$format = 'A4';
-			$marginLeft = 15;
-			$marginRight = 15;
-			$marginTop = 16;
-			$marginBottom = 16;
-			$marginHeader = 9;
-			$marginFooter = 9;
-			$orientation = 'P';
 			$constr1 = explode( '<!--mpdf<constructor', $html, 2 );
 			if ( isset( $constr1[1] ) ) {
 				list( $constr2 ) = explode( '/>', $constr1[1], 1 );
@@ -92,7 +82,9 @@ class MpdfAction extends Action {
 					$orientation = $matches[1];
 				}
 			}
-			$mpdf = new mPDF( $mode, $format, 0, '', $marginLeft, $marginRight, $marginTop, $marginBottom, $marginHeader, $marginFooter, $orientation );
+
+			// Mpdf 오브젝트
+			$mpdf = static::getMpdfObject();
 
 			// Suppress warning messages, because the mPDF library
 			// itself generates warnings (due to trying to add
@@ -118,4 +110,38 @@ class MpdfAction extends Action {
 		$output->disable();
 	}
 
+	/**
+	 * 한글 출력을 위해 Google Notosans CJK 기본 폰트가 설정된 Mpdf 객체 리턴
+	 */
+	private static function getMpdfObject() {
+		$defaultConfig = (new Mpdf\Config\ConfigVariables())->getDefaults();
+		$fontDirs = $defaultConfig['fontDir'];
+
+		$defaultFontConfig = (new Mpdf\Config\FontVariables())->getDefaults();
+		$fontData = $defaultFontConfig['fontdata'];
+
+		$mpdf = new \Mpdf\Mpdf([
+			'mode' => 'utf-8',
+			'format' => 'A4',
+			'margin_left' => 15,
+			'margin_right' => 15,
+			'margin_top' => 16,
+			'margin_bottom' => 16,
+			'margin_header' => 9,
+			'margin_footer' => 9,
+			'orientation' => 'P',
+			'fontDir' => array_merge($fontDirs, [
+				__DIR__ . '/fonts',
+			]),
+			'fontdata' => $fontData + [
+				'notosans' => [
+					'R' => 'NotoSansKR-Regular-Hestia.ttf',
+					'B' => 'NotoSansKR-Bold-Hestia.ttf',
+				],
+			],
+			'default_font' => 'notosans'
+		]);
+
+		return $mpdf;
+	}
 }
